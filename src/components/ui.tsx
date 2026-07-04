@@ -144,6 +144,69 @@ export function NumberField({
   );
 }
 
+/**
+ * Kombinerad kontroll: slider för snabba drag + siffertfält för exakta värden.
+ * Värden utanför sliderns intervall kan fortfarande skrivas in i fältet.
+ */
+export function RangeField({
+  label,
+  value,
+  onChange,
+  min = 0,
+  max,
+  step = 1,
+  suffix = "kr",
+  hint,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max: number;
+  step?: number;
+  suffix?: string;
+  hint?: string;
+}) {
+  const id = useId();
+  const sliderValue = Math.min(Math.max(value, min), max);
+  const fill = max > min ? ((sliderValue - min) / (max - min)) * 100 : 0;
+  return (
+    <div>
+      <div className="flex items-center justify-between flex-wrap gap-x-3 gap-y-1 mb-1.5">
+        <label htmlFor={id} className="text-sm text-ink-2 min-w-0">
+          {label}
+        </label>
+        <div className="relative shrink-0">
+          <input
+            id={id}
+            type="number"
+            inputMode="decimal"
+            className="w-32 rounded-lg border border-hairline bg-surface pl-2 pr-11 py-1 text-sm text-right text-ink tnum focus:outline-none focus:ring-2 focus:ring-accent/50"
+            value={Number.isFinite(value) ? value : 0}
+            min={min}
+            step={step}
+            onChange={(e) => onChange(Number(e.target.value))}
+          />
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-ink-3 pointer-events-none">
+            {suffix}
+          </span>
+        </div>
+      </div>
+      <input
+        type="range"
+        aria-label={label}
+        min={min}
+        max={max}
+        step={step}
+        value={sliderValue}
+        style={{ ["--fill" as string]: `${fill}%` }}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+      {hint && <p className="text-xs text-ink-3 mt-1">{hint}</p>}
+    </div>
+  );
+}
+
 export function SliderField({
   label,
   value,

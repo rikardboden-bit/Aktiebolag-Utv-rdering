@@ -1,7 +1,7 @@
 import { useSim } from "../state";
 import { marginalTaxAt, PayoutStrategy } from "../lib/model";
 import { pctFmt } from "../lib/format";
-import { Card, NumberField, SectionTitle, ToggleField } from "./ui";
+import { Card, NumberField, RangeField, SectionTitle, ToggleField } from "./ui";
 
 const strategies: { id: PayoutStrategy; label: string; hint: string }[] = [
   { id: "salary", label: "Lön", hint: "Ta ut så mycket som möjligt som lön" },
@@ -29,46 +29,54 @@ export default function InputsTab() {
         <SectionTitle sub="Din befintliga anställning och skattesituation">
           Min ekonomi
         </SectionTitle>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <NumberField
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+          <RangeField
             label="Månadslön från anställning"
             value={p.monthlySalary}
             onChange={(v) => setPersonal({ monthlySalary: v })}
-            suffix="kr/mån"
-            step={1000}
+            max={150000}
+            step={500}
+            suffix="kr"
           />
-          <NumberField
+          <RangeField
             label="Kommunalskatt"
             value={p.municipalTaxRate}
             onChange={(v) => setPersonal({ municipalTaxRate: v })}
+            min={28}
+            max={36}
+            step={0.05}
             suffix="%"
-            step={0.1}
           />
-          <NumberField
+          <RangeField
             label="Brytpunkt statlig skatt (årslön)"
             value={p.stateTaxThresholdYear}
             onChange={(v) => setPersonal({ stateTaxThresholdYear: v })}
-            suffix="kr/år"
+            min={400000}
+            max={900000}
             step={1000}
+            suffix="kr"
             hint="Redigerbart antagande, 643 100 kr för 2025"
           />
-          <NumberField
+          <RangeField
             label="Statlig inkomstskatt"
             value={p.stateTaxRate}
             onChange={(v) => setPersonal({ stateTaxRate: v })}
-            suffix="%"
+            max={30}
             step={1}
+            suffix="%"
           />
-          <NumberField
+          <RangeField
             label="Marginalskatt på extra inkomst"
             value={p.marginalTaxOverride ?? autoMarginal}
             onChange={(v) => setPersonal({ marginalTaxOverride: v })}
-            suffix="%"
+            min={25}
+            max={60}
             step={0.5}
+            suffix="%"
             hint={
               p.marginalTaxOverride == null
-                ? `Beräknas automatiskt till ${pctFmt(autoMarginal)} – skriv för att låsa`
-                : "Manuellt värde – klicka Återställ auto nedan"
+                ? `Beräknas automatiskt till ${pctFmt(autoMarginal)} – dra för att låsa`
+                : "Manuellt värde"
             }
           />
           {p.marginalTaxOverride != null && (
@@ -114,44 +122,49 @@ export default function InputsTab() {
         <p className="text-xs text-ink-3 mb-4">
           {strategies.find((s) => s.id === p.payoutStrategy)?.hint}
         </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <NumberField
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+          <RangeField
             label="Önskad egen lön från AB"
             value={p.desiredSalaryFromAB}
             onChange={(v) => setPersonal({ desiredSalaryFromAB: v })}
-            suffix="kr/år"
-            step={1000}
+            max={600000}
+            step={5000}
+            suffix="kr"
             hint={p.payoutStrategy !== "mix" ? "Används i läget Egen mix" : undefined}
           />
-          <NumberField
+          <RangeField
             label="Önskad utdelning från AB"
             value={p.desiredDividend}
             onChange={(v) => setPersonal({ desiredDividend: v })}
-            suffix="kr/år"
+            max={300000}
             step={1000}
+            suffix="kr"
             hint={p.payoutStrategy !== "mix" ? "Används i läget Egen mix" : undefined}
           />
-          <NumberField
+          <RangeField
             label="Ägarandel i AB"
             value={p.ownershipSharePct}
             onChange={(v) => setPersonal({ ownershipSharePct: v })}
-            suffix="%"
+            max={100}
             step={1}
+            suffix="%"
           />
-          <NumberField
+          <RangeField
             label="Gränsbelopp enligt förenklingsregeln"
             value={p.simplificationAmount}
             onChange={(v) => setPersonal({ simplificationAmount: v })}
-            suffix="kr/år"
+            max={400000}
             step={1000}
+            suffix="kr"
             hint="209 550 kr för 2025 (2,75 IBB), fördelas på ägarandel"
           />
-          <NumberField
+          <RangeField
             label="Sparat utdelningsutrymme"
             value={p.savedDividendAllowance}
             onChange={(v) => setPersonal({ savedDividendAllowance: v })}
+            max={500000}
+            step={5000}
             suffix="kr"
-            step={1000}
           />
         </div>
       </Card>
@@ -161,61 +174,75 @@ export default function InputsTab() {
         <SectionTitle sub="Intäkter och kostnader för prylarna (belopp inkl. moms)">
           Uthyrningsverksamheten
         </SectionTitle>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <NumberField
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+          <RangeField
             label="Årliga uthyrningsintäkter"
             value={r.annualRevenueInclVat}
             onChange={(v) => setRental({ annualRevenueInclVat: v })}
-            suffix="kr/år"
+            max={600000}
             step={1000}
+            suffix="kr"
             hint={`≈ ${Math.round(r.annualRevenueInclVat / 12).toLocaleString(
               "sv-SE"
             )} kr/mån`}
           />
-          <NumberField
+          <RangeField
             label="Plattformsavgift (Hygglo m.fl.)"
             value={r.platformFeePct}
             onChange={(v) => setRental({ platformFeePct: v })}
+            max={40}
+            step={0.5}
             suffix="%"
-            step={1}
           />
-          <NumberField
+          <RangeField
             label="Reparationer"
             value={r.repairs}
             onChange={(v) => setRental({ repairs: v })}
-            suffix="kr/år"
+            max={30000}
+            step={250}
+            suffix="kr"
           />
-          <NumberField
+          <RangeField
             label="Förvaring"
             value={r.storage}
             onChange={(v) => setRental({ storage: v })}
-            suffix="kr/år"
+            max={30000}
+            step={250}
+            suffix="kr"
           />
-          <NumberField
+          <RangeField
             label="Transport"
             value={r.transport}
             onChange={(v) => setRental({ transport: v })}
-            suffix="kr/år"
+            max={30000}
+            step={250}
+            suffix="kr"
           />
-          <NumberField
+          <RangeField
             label="Försäkring"
             value={r.insurance}
             onChange={(v) => setRental({ insurance: v })}
-            suffix="kr/år"
+            max={20000}
+            step={250}
+            suffix="kr"
             hint="Momsfri kostnad"
           />
-          <NumberField
+          <RangeField
             label="Övriga fasta kostnader"
             value={r.otherFixed}
             onChange={(v) => setRental({ otherFixed: v })}
-            suffix="kr/år"
+            max={30000}
+            step={250}
+            suffix="kr"
           />
-          <NumberField
+          <RangeField
             label="Övriga rörliga kostnader"
             value={r.otherVariablePct}
             onChange={(v) => setRental({ otherVariablePct: v })}
-            suffix="% av intäkt"
+            max={30}
             step={1}
+            suffix="%"
+            hint="Procent av intäkterna"
           />
         </div>
       </Card>
@@ -225,25 +252,31 @@ export default function InputsTab() {
         <SectionTitle sub="Kostnader som bara finns i AB-scenariot">
           Administration (endast AB)
         </SectionTitle>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <NumberField
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+          <RangeField
             label="Bokföring/redovisning"
             value={r.accounting}
             onChange={(v) => setRental({ accounting: v })}
-            suffix="kr/år"
+            max={30000}
+            step={250}
+            suffix="kr"
           />
-          <NumberField
+          <RangeField
             label="Företagskonto/bank"
             value={r.bank}
             onChange={(v) => setRental({ bank: v })}
-            suffix="kr/år"
+            max={5000}
+            step={100}
+            suffix="kr"
             hint="Momsfri kostnad"
           />
-          <NumberField
+          <RangeField
             label="Övriga bolagskostnader"
             value={r.companyCosts}
             onChange={(v) => setRental({ companyCosts: v })}
-            suffix="kr/år"
+            max={20000}
+            step={250}
+            suffix="kr"
             hint="T.ex. årsredovisning, deklaration, avgifter"
           />
         </div>
@@ -254,38 +287,42 @@ export default function InputsTab() {
         <SectionTitle sub="Investeringar i nya prylar och hur de skrivs av">
           Inköp & avskrivning
         </SectionTitle>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <NumberField
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+          <RangeField
             label="Inköp av nya prylar per år"
             value={r.purchasesPerYear}
             onChange={(v) => setRental({ purchasesPerYear: v })}
-            suffix="kr/år"
-            step={500}
+            max={200000}
+            step={1000}
+            suffix="kr"
           />
-          <NumberField
+          <RangeField
             label="Andel inköp med avdragsgill moms"
             value={r.purchasesVatDeductiblePct}
             onChange={(v) => setRental({ purchasesVatDeductiblePct: v })}
-            suffix="%"
+            max={100}
             step={5}
+            suffix="%"
             hint="Begagnat från privatperson saknar avdragsgill moms"
           />
-          <NumberField
+          <RangeField
             label="Avskrivningstid per pryl"
             value={r.depreciationYears}
             onChange={(v) => setRental({ depreciationYears: v })}
-            suffix="år"
-            step={1}
             min={1}
+            max={10}
+            step={1}
+            suffix="år"
           />
-          <NumberField
-            label="Restvärde/försäljningsvärde"
+          <RangeField
+            label="Restvärde vid försäljning"
             value={r.residualValuePct}
             onChange={(v) => setRental({ residualValuePct: v })}
-            suffix="%"
+            max={80}
             step={5}
+            suffix="%"
           />
-          <NumberField
+          <RangeField
             label="Antal prylar"
             value={r.numItems}
             onChange={(v) =>
@@ -294,11 +331,11 @@ export default function InputsTab() {
                 annualRevenueInclVat: Math.round(v * r.avgRevenuePerItem),
               })
             }
-            suffix="st"
+            max={100}
             step={1}
-            min={0}
+            suffix="st"
           />
-          <NumberField
+          <RangeField
             label="Genomsnittlig intäkt per pryl"
             value={r.avgRevenuePerItem}
             onChange={(v) =>
@@ -307,12 +344,13 @@ export default function InputsTab() {
                 annualRevenueInclVat: Math.round(r.numItems * v),
               })
             }
-            suffix="kr/år"
+            max={20000}
             step={100}
+            suffix="kr"
             hint="Antal × intäkt/pryl uppdaterar årsintäkten"
           />
         </div>
-        <div className="mt-4 space-y-3">
+        <div className="mt-5 pt-4 border-t border-hairline space-y-3">
           <ToggleField
             label="Momsregistrerat AB"
             hint="Under 120 000 kr i omsättning är momsregistrering frivillig"
