@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bostadskalkyl</title>
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --ink: #1a2233; --muted: #64748b;
+    --accent: #2563eb; --accent2: #7c3aed; --good: #16a34a; --bad: #dc2626;
+    --amort: #2563eb; --ranta: #f59e0b; --drift: #10b981; --avgift: #8b5cf6;
+    --border: #e2e8f0; --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); padding-bottom: 40px; }
+  header.hero { background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #fff; padding: 24px 16px 20px; }
+  header.hero h1 { font-size: 1.4rem; letter-spacing: .5px; }
+  header.hero p { font-size: .85rem; opacity: .85; margin-top: 4px; }
+  .sticky-total { position: sticky; top: 0; z-index: 50; background: #0f172ae6; backdrop-filter: blur(6px); color: #fff; display: flex; justify-content: space-between; align-items: baseline; padding: 10px 16px; font-size: .9rem; }
+  .sticky-total strong { font-size: 1.15rem; }
+  main { max-width: 760px; margin: 0 auto; padding: 12px; display: flex; flex-direction: column; gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+  .card h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: flex; justify-content: space-between; font-size: .85rem; color: var(--ink); margin-bottom: 6px; gap: 8px; }
+  .field label output { font-weight: 600; white-space: nowrap; }
+  .field input[type=range] { width: 100%; accent-color: var(--accent); }
+  .field input[type=number] { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+  .kpi .lbl { font-size: .7rem; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+  .kpi .val { font-size: 1.15rem; font-weight: 700; margin-top: 4px; }
+  .kpi .sub { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+  .kpi.wide { grid-column: 1 / -1; }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th, td { padding: 7px 6px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: .72rem; text-transform: uppercase; }
+  tr.total td { font-weight: 700; background: #eff6ff; }
+  tr.sel td { background: #fef9c3; }
+  .green { color: var(--good); } .red { color: var(--bad); }
+  .stack { display: flex; height: 22px; border-radius: 6px; overflow: hidden; margin: 4px 0 10px; }
+  .stack div { height: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: .72rem; color: var(--muted); margin-bottom: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; background: var(--c); }
+  .senrow { margin-bottom: 8px; }
+  .senrow .cap { display: flex; justify-content: space-between; font-size: .78rem; margin-bottom: 2px; }
+  .scen { border-left: 4px solid var(--accent); }
+  .scen h3 { font-size: .95rem; margin-bottom: 8px; }
+  .scen .max { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+  .scen ul { list-style: none; font-size: .82rem; color: var(--muted); margin: 6px 0; }
+  .scen ul li { display: flex; justify-content: space-between; padding: 2px 0; }
+  .scen ul li b { color: var(--ink); }
+  .badge { display: inline-block; font-size: .72rem; padding: 3px 8px; border-radius: 999px; margin-top: 6px; }
+  .badge.ok { background: #dcfce7; color: var(--good); }
+  .badge.no { background: #fee2e2; color: var(--bad); }
+  .scenbar { background: var(--border); border-radius: 6px; height: 16px; overflow: hidden; margin-top: 8px; }
+  .scenbar div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  button.reset { width: 100%; padding: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted); border-radius: 10px; font-size: .85rem; cursor: pointer; }
+  @media (min-width: 640px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1>BOSTADSKÖP</h1>
+  <p>Interaktiv kalkyl för köpkraft, månadskostnad och räntekänslighet</p>
+</header>
+<div class="sticky-total"><span>Total månadskostnad</span><strong id="stickyTotal">–</strong></div>
+<main>
+  <section class="card">
+    <h2>Bostad</h2>
+    <div class="field"><label>Köpeskilling <output id="o_price"></output></label>
+      <input type="range" id="price" min="1000000" max="15000000" step="50000">
+      <input type="number" id="price_n" step="50000"></div>
+    <div class="field"><label>Kontantinsats <output id="o_down"></output></label>
+      <input type="range" id="down" min="0" max="10000000" step="50000">
+      <input type="number" id="down_n" step="50000"></div>
+    <div class="row2">
+      <div class="field"><label>Driftskostnad / mån</label><input type="number" id="drift" step="100"></div>
+      <div class="field"><label>Avgift / mån</label><input type="number" id="avgift" step="1"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Hushåll</h2>
+    <div class="row2">
+      <div class="field"><label>Rikard – månadslön</label><input type="number" id="sal1" step="1000"></div>
+      <div class="field"><label>Partner – månadslön</label><input type="number" id="sal2" step="1000"></div>
+      <div class="field"><label>Nuv. drift / mån</label><input type="number" id="curDrift" step="100"></div>
+      <div class="field"><label>Nuv. avgift / mån</label><input type="number" id="curAvgift" step="100"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Antaganden</h2>
+    <div class="field"><label>Vald ränta (analys) <output id="o_rate"></output></label>
+      <input type="range" id="rate" min="0" max="8" step="0.1"></div>
+    <div class="row2">
+      <div class="field"><label>Belåningsfaktor (× årslön)</label><input type="number" id="factor" step="0.1"></div>
+      <div class="field"><label>Ränteavdrag, brytgräns (kr/år)</label><input type="number" id="brk" step="10000"></div>
+      <div class="field"><label>Avdrag låg sats (%)</label><input type="number" id="lowR" step="1"></div>
+      <div class="field"><label>Avdrag hög sats (%)</label><input type="number" id="highR" step="1"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:4px 0 10px;">Nyckeltal</h2>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section class="card">
+    <h2>Månadskostnad – uppdelat</h2>
+    <div class="legend">
+      <span style="--c:var(--amort)">Amortering</span><span style="--c:var(--ranta)">Ränta</span>
+      <span style="--c:var(--drift)">Drift</span><span style="--c:var(--avgift)">Avgift</span>
+    </div>
+    <div class="stack" id="breakStack"></div>
+    <table id="breakTable"></table>
+  </section>
+
+  <section class="card">
+    <h2>Räntekänslighet – månadskostnad vid olika räntor</h2>
+    <div class="legend">
+      <span style="--c:var(--amort)">Amortering</span><span style="--c:var(--ranta)">Ränta</span>
+      <span style="--c:var(--drift)">Drift + Avgift</span>
+    </div>
+    <div id="senBars"></div>
+    <div style="overflow-x:auto"><table id="senTable"></table></div>
+  </section>
+
+  <section>
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:4px 0 10px;">Köpkraftsscenarier</h2>
+    <div id="scenarios" style="display:flex;flex-direction:column;gap:12px;"></div>
+  </section>
+
+  <button class="reset" id="reset">Återställ till standardvärden</button>
+</main>
+<script>
+const DEFAULTS = { price: 5000000, down: 1000000, drift: 1000, avgift: 3118,
+  sal1: 58000, sal2: 46000, curDrift: 1000, curAvgift: 3400,
+  rate: 3.5, factor: 4.5, brk: 100000, lowR: 30, highR: 21,
+  scen1: 1000000, scen2: 5500000, scen3: 2000000 };
+const KEY = 'bostadskalkyl_v1';
+let S = { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(KEY) || '{}')) };
+
+const kr = n => Math.round(n).toLocaleString('sv-SE') + ' kr';
+const pct = (n, d=1) => n.toLocaleString('sv-SE', {minimumFractionDigits:d, maximumFractionDigits:d}) + ' %';
+const $ = id => document.getElementById(id);
+
+function bind(id, key, isRange) {
+  const el = $(id);
+  el.value = S[key];
+  el.addEventListener('input', () => { S[key] = parseFloat(el.value) || 0; sync(id, key); render(); });
+}
+function sync(changedId, key) {
+  ['price','down'].forEach(k => { if (k === key) { $(k).value = S[k]; $(k + '_n').value = S[k]; } });
+  localStorage.setItem(KEY, JSON.stringify(S));
+}
+
+function calc() {
+  const P = S.price, K = S.down, L = Math.max(P - K, 0);
+  const ltv = P > 0 ? 1 - K / P : 0;
+  const inc12 = (S.sal1 + S.sal2) * 12;
+  const baseAmort = ltv > 0.7 ? 0.02 : ltv > 0.5 ? 0.01 : 0;
+  const extraAmort = L > S.factor * inc12 ? 0.01 : 0;
+  const aRate = baseAmort + extraAmort;
+  const r = S.rate / 100;
+  const amort = aRate * L / 12;
+  const interest = r * L / 12;
+  const total = amort + interest + S.drift + S.avgift;
+  const yearInt = r * L;
+  const deduction = -(Math.min(yearInt, S.brk) * S.lowR/100 + Math.max(yearInt - S.brk, 0) * S.highR/100) / 12;
+  return { P, K, L, ltv, aRate, baseAmort, extraAmort, amort, interest, total,
+    deduction, net: total + deduction, perPerson: total / 2,
+    delta: total - S.curDrift - S.curAvgift };
+}
+
+function render() {
+  const c = calc();
+  $('o_price').textContent = kr(S.price); $('o_down').textContent = kr(S.down);
+  $('o_rate').textContent = pct(S.rate);
+  $('stickyTotal').textContent = kr(c.total) + ' / mån';
+
+  const why = [];
+  if (c.baseAmort === 0.02) why.push('belåningsgrad > 70 %');
+  else if (c.baseAmort === 0.01) why.push('belåningsgrad 50–70 %');
+  if (c.extraAmort) why.push('skuldkvot > ' + S.factor.toLocaleString('sv-SE') + '× årsinkomst (+1 %)');
+  $('kpis').innerHTML = `
+    <div class="kpi"><div class="lbl">Belåning</div><div class="val">${kr(c.L)}</div></div>
+    <div class="kpi"><div class="lbl">Belåningsgrad</div><div class="val">${pct(c.ltv*100,0)}</div></div>
+    <div class="kpi"><div class="lbl">Amorteringskrav</div><div class="val">${pct(c.aRate*100,0)}</div><div class="sub">${why.join(' · ') || 'inget krav'}</div></div>
+    <div class="kpi"><div class="lbl">Månadskostnad</div><div class="val">${kr(c.total)}</div><div class="sub">vid ${pct(S.rate)} ränta</div></div>
+    <div class="kpi"><div class="lbl">Per person</div><div class="val">${kr(c.perPerson)}</div></div>
+    <div class="kpi"><div class="lbl">Mot idag</div><div class="val ${c.delta >= 0 ? 'red' : 'green'}">${c.delta >= 0 ? '+' : ''}${kr(c.delta)}</div><div class="sub">jämfört med nuvarande boende</div></div>`;
+
+  const parts = [['Amortering', c.amort, 'var(--amort)'], ['Ränta (brutto)', c.interest, 'var(--ranta)'],
+    ['Driftskostnad', S.drift, 'var(--drift)'], ['Avgift', S.avgift, 'var(--avgift)']];
+  $('breakStack').innerHTML = parts.map(([n,v,col]) =>
+    `<div style="width:${c.total ? v/c.total*100 : 0}%;background:${col}"></div>`).join('');
+  $('breakTable').innerHTML =
+    parts.map(([n,v]) => `<tr><td>${n}</td><td>${kr(v)}</td></tr>`).join('') +
+    `<tr class="total"><td>TOTAL / mån</td><td>${kr(c.total)}</td></tr>
+     <tr><td>Ränteavdrag (info)</td><td class="green">${kr(c.deduction)}</td></tr>
+     <tr><td><b>Netto efter ränteavdrag</b></td><td><b>${kr(c.net)}</b></td></tr>`;
+
+  const rates = [2.5, 3, 3.5, 4, 4.5, 5];
+  const rows = rates.map(rp => {
+    const i = rp/100 * c.L / 12, da = S.drift + S.avgift, tot = c.amort + i + da;
+    return { rp, i, da, tot };
+  });
+  const maxTot = Math.max(...rows.map(x => x.tot), 1);
+  const selIdx = rows.reduce((b, x, i) => Math.abs(x.rp - S.rate) < Math.abs(rows[b].rp - S.rate) ? i : b, 0);
+  $('senBars').innerHTML = rows.map((x, i) => `
+    <div class="senrow" style="${i===selIdx?'outline:2px solid #eab308;outline-offset:2px;border-radius:6px;':''}">
+      <div class="cap"><span>${pct(x.rp)}</span><b>${kr(x.tot)}</b></div>
+      <div class="stack" style="width:${x.tot/maxTot*100}%;margin:0;">
+        <div style="width:${c.amort/x.tot*100}%;background:var(--amort)"></div>
+        <div style="width:${x.i/x.tot*100}%;background:var(--ranta)"></div>
+        <div style="width:${x.da/x.tot*100}%;background:var(--drift)"></div>
+      </div>
+    </div>`).join('');
+  $('senTable').innerHTML = `<tr><th>Ränta</th><th>Amortering</th><th>Ränta brutto</th><th>Drift + Avgift</th><th>TOTAL / mån</th><th>Per person</th></tr>` +
+    rows.map((x, i) => `<tr${i===selIdx?' class="sel"':''}><td>${pct(x.rp)}</td><td>${kr(c.amort)}</td><td>${kr(x.i)}</td><td>${kr(x.da)}</td><td><b>${kr(x.tot)}</b></td><td>${kr(x.tot/2)}</td></tr>`).join('');
+
+  const scens = [
+    { name: 'Rikard ensam', key: 'scen1', income: S.sal1 * 12 },
+    { name: 'Rikard + föräldrar', key: 'scen2', income: S.sal1 * 12 },
+    { name: 'Rikard + partner', key: 'scen3', income: (S.sal1 + S.sal2) * 12 },
+  ].map(s => { const maxLoan = s.income * S.factor; return { ...s, maxLoan, maxPrice: S[s.key] + maxLoan }; });
+  const maxOfMax = Math.max(...scens.map(s => s.maxPrice), 1);
+  $('scenarios').innerHTML = scens.map(s => `
+    <div class="card scen">
+      <h3>${s.name}</h3>
+      <div class="max">${kr(s.maxPrice)}</div>
+      <div class="sub" style="font-size:.75rem;color:var(--muted)">max köpeskilling</div>
+      <ul>
+        <li>Kontantinsats <b><input type="number" data-scen="${s.key}" value="${S[s.key]}" step="100000" style="width:120px;text-align:right;border:1px solid var(--border);border-radius:6px;padding:2px 6px;"></b></li>
+        <li>Inkomstunderlag <b>${kr(s.income)}</b></li>
+        <li>Max belåning (${S.factor.toLocaleString('sv-SE')}×) <b>${kr(s.maxLoan)}</b></li>
+      </ul>
+      <div class="scenbar"><div style="width:${s.maxPrice/maxOfMax*100}%"></div></div>
+      <span class="badge ${S.price <= s.maxPrice ? 'ok' : 'no'}">${S.price <= s.maxPrice ? '✓ Klarar vald köpeskilling' : '✗ Räcker inte till vald köpeskilling'}</span>
+    </div>`).join('');
+  document.querySelectorAll('[data-scen]').forEach(el =>
+    el.addEventListener('change', () => { S[el.dataset.scen] = parseFloat(el.value) || 0; localStorage.setItem(KEY, JSON.stringify(S)); render(); }));
+}
+
+[['price','price'],['down','down'],['drift','drift'],['avgift','avgift'],['sal1','sal1'],['sal2','sal2'],
+ ['curDrift','curDrift'],['curAvgift','curAvgift'],['rate','rate'],['factor','factor'],['brk','brk'],
+ ['lowR','lowR'],['highR','highR'],['price_n','price'],['down_n','down']].forEach(([id,key]) => bind(id, key));
+$('reset').addEventListener('click', () => { S = { ...DEFAULTS }; localStorage.setItem(KEY, JSON.stringify(S));
+  ['price','down','drift','avgift','sal1','sal2','curDrift','curAvgift','rate','factor','brk','lowR','highR'].forEach(k => { $(k).value = S[k]; });
+  $('price_n').value = S.price; $('down_n').value = S.down; render(); });
+sync(); render();
+</script>
+</body>
+</html>
